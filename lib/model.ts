@@ -160,7 +160,19 @@ export interface LiveRow {
   change_7d: number | null;
 }
 
-/** Everything the dashboard needs: the board, the live set, and the model it runs. */
+/** One chain's share of the ranked board: its protocol count and their combined implied value. */
+export interface ChainShare {
+  chain: string;
+  protocols: number;
+  implied_usd: number;
+}
+/** One category's share of the ranked board, the same shape as a chain's share. */
+export interface CategoryShare {
+  category: string;
+  protocols: number;
+  implied_usd: number;
+}
+/** Everything the dashboard renders: the board, the live set, the model, and the two summaries. */
 export interface RadarData {
   as_of: string;
   source: string;
@@ -173,6 +185,8 @@ export interface RadarData {
   live_size: number;
   rows: RadarRow[];
   live: LiveRow[];
+  chains: ChainShare[];
+  categories: CategoryShare[];
 }
 
 /** Why the snapshot is not one this model can score. */
@@ -474,7 +488,32 @@ export function radarRow(row: BoardRow, watch: boolean): RadarRow {
   };
 }
 
-/** Everything the dashboard renders, from the snapshot. */
+/** Group board rows by a label, counting rows and adding their implied values, largest total first. */
+function tally(rows: BoardRow[], label: (row: BoardRow) => string): { label: string; protocols: number; implied_usd: number }[] {
+  const byLabel = new Map<string, { label: string; protocols: number; implied_usd: number }>();
+  for (const row of rows) {
+    const name = label(row);
+    const found = byLabel.get(name);
+    if (found === undefined) byLabel.set(name, { label: name, protocols: 1, implied_usd: row.implied_value_usd });
+    else { found.protocols += 1; found.implied_usd += row.implied_value_usd; }
+  }
+  return [...byLabel.values()].sort((a, b) => b.implied_usd - a.implied_usd);
+}
+
+/** The board's implied value by primary chain, largest chain first. */
+export function chainShares(board: BoardRow[]): ChainShare[] {
+  return tally(board, (row) => {
+    const first = row.chains[0];
+    return first === undefined ? 'No chain listed' : first;
+  }).map((g) => ({ chain: g.label, protocols: g.protocols, implied_usd: g.implied_usd }));
+}
+
+/** The board's implied value by category, largest category first. */
+export function categoryShares(board: BoardRow[]): CategoryShare[] {
+  return tally(board, (row) => (row.category === null ? 'No category listed' : row.category)).map((g) => ({ category: g.label, protocols: g.protocols, implied_usd: g.implied_usd }));
+}
+
+/** Everything the dashboard renders, from the snapshot, with the two summaries attached. */
 export function buildRadar(snapshot: Snapshot, model: ModelConstants = MODEL): { board: BoardRow[]; radar: RadarData } {
   const board = buildBoard(snapshot, model);
   const live = liveRows(snapshot);
@@ -491,6 +530,8 @@ export function buildRadar(snapshot: Snapshot, model: ModelConstants = MODEL): {
     live_size: live.length,
     rows: board.map((r) => radarRow(r, snapshot.watchlist.includes(r.slug))),
     live,
+    chains: chainShares(board),
+    categories: categoryShares(board),
   };
   return { board, radar };
 }

@@ -116,4 +116,12 @@ tbody tr[data-selected="true"] { background: var(--accent-soft); }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
+.summaries { display: flex; flex-wrap: wrap; gap: var(--s3); padding-bottom: var(--s4); }
+.summary-card { flex: 1 1 300px; min-width: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-panel); padding: var(--s4); }
+.summary-card h2 { font-size: 15px; margin-bottom: var(--s2); }
+.summary-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s2); }
+.summary-list li { display: flex; align-items: baseline; gap: var(--s3); }
+.summary-list li b { font-weight: 600; }
+.summary-list li .num { margin-left: auto; font-family: var(--font-num); color: var(--accent); }
+.summary-list li .sub { white-space: nowrap; }
 }

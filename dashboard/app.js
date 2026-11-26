@@ -441,6 +441,27 @@
     }
   }
 
+  function summaryPanels() {
+    var chainList = (DATA.chains || []).slice(0, 5);
+    var categoryList = (DATA.categories || []).slice(0, 5);
+    function panel(title, list, labelKey) {
+      return el('section', { class: 'summary-card' },
+        el('h2', { text: title }),
+        el('ul', { class: 'summary-list' }, list.map(function (g) {
+          return el('li', null,
+            el('b', { text: g[labelKey] }),
+            el('span', { class: 'sub', text: g.protocols + (g.protocols === 1 ? ' protocol' : ' protocols') }),
+            el('span', { class: 'num', text: fmtUsd(g.implied_usd) })
+          );
+        }))
+      );
+    }
+    return el('div', { class: 'summaries' },
+      panel('Top chains', chainList, 'chain'),
+      panel('Top categories', categoryList, 'category')
+    );
+  }
+
   function render() {
     app.textContent = '';
     var shell = el('div', { class: 'shell' });
@@ -448,6 +469,7 @@
     shell.appendChild(lede());
     shell.appendChild(spotlight());
     shell.appendChild(controls());
+    if (state.tab === 'pre-token') shell.appendChild(summaryPanels());
     shell.appendChild(state.tab === 'pre-token' ? boardTable() : liveTable());
     if (state.tab === 'pre-token') shell.appendChild(modelPanel());
     app.appendChild(shell);
