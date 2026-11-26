@@ -27,6 +27,14 @@
 // to three years. Breadth is the number of chains it runs on: more chains means more places
 // to farm and more users a token would reach. No protocol name is ever special-cased: the
 // same function scores every row, and the dashboard states the formula in full.
+//
+// Age is also bucketed for the reader: a protocol younger than 180 days is "new", one
+// between 180 and 730 days is "established", one older than 730 days is "mature", and one
+// whose listing date is unknown is "unknown". The bucket never changes the score — it is
+// only a label on the row, so the ranking and the top 5 are the same with or without it.
+
+/** A protocol's age bucket, from the same age the model already uses. */
+export type AgeBucket = 'new' | 'established' | 'mature' | 'unknown';
 
 /** The snapshot's protocol entry: exactly the ten fields the sealed input carries. */
 export interface SnapshotProtocol {
@@ -108,6 +116,7 @@ export interface BoardRow {
   symbol: string | null;
   token_status: 'pre-token';
   age_days: number | null;
+  age_bucket: AgeBucket;
   implied_value_usd: number;
   model: {
     base_multiple: number;
@@ -132,6 +141,7 @@ export interface RadarRow {
   mcap_usd: number | null;
   listed_at: string | null;
   age_days: number | null;
+  age_bucket: AgeBucket;
   implied_value_usd: number;
   growth_multiplier: number;
   maturity_multiplier: number;
@@ -187,6 +197,19 @@ export function ageDays(asOf: string, listedAt: string | null): number | null {
   const b = Date.parse(`${listedAt}T00:00:00Z`);
   if (!Number.isFinite(a) || !Number.isFinite(b)) return null;
   return Math.max(0, Math.floor((a - b) / DAY_MS));
+}
+
+/**
+ * The age bucket of a protocol, from the same day count the model already uses:
+ * under 180 days is new, 180 to 730 days is established, over 730 days is mature,
+ * and an unknown age is unknown. The bucket is a label only — it never enters the
+ * implied value, so adding it cannot move a row's rank.
+ */
+export function ageBucket(age: number | null): AgeBucket {
+  if (age === null) return 'unknown';
+  if (age < 180) return 'new';
+  if (age <= 730) return 'established';
+  return 'mature';
 }
 
 /** The four multipliers and the implied value one protocol gets under `model`. */
@@ -270,6 +293,7 @@ export function buildBoard(snapshot: Snapshot, model: ModelConstants = MODEL): B
     symbol: s.p.symbol,
     token_status: 'pre-token',
     age_days: s.age,
+    age_bucket: ageBucket(s.age),
     implied_value_usd: s.implied,
     model: {
       base_multiple: model.base_multiple,
@@ -441,6 +465,7 @@ export function radarRow(row: BoardRow, watch: boolean): RadarRow {
     mcap_usd: row.mcap_usd,
     listed_at: row.listed_at,
     age_days: row.age_days,
+    age_bucket: row.age_bucket,
     implied_value_usd: row.implied_value_usd,
     growth_multiplier: row.model.growth_multiplier,
     maturity_multiplier: row.model.maturity_multiplier,

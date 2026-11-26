@@ -30,6 +30,49 @@
     if (days >= 365) return (days / 365).toFixed(1) + 'y';
     return Math.max(0, Math.round(days)) + 'd';
   }
+  // The age bucket's plain label, as the board writes it: new, established, mature, unknown.
+  function fmtBucket(bucket) {
+    if (bucket === 'new') return 'new';
+    if (bucket === 'established') return 'established';
+    if (bucket === 'mature') return 'mature';
+    return 'unknown';
+  }
+  // Copy a farm plan as plain text: the protocol, its rank and implied value, then the
+  // numbered steps. The clipboard API is tried first; where it is unavailable (an older
+  // browser, or a page served without a secure context) the text is selected in a temporary
+  // textarea instead, so the reader can copy it by hand.
+  function copyFarmPlan(row, steps, button, note) {
+    var lines = ['Farm plan: ' + row.name + ' (rank ' + row.rank + ', ' + fmtUsd(row.implied_value_usd) + ' implied)'];
+    steps.forEach(function (s, i) { lines.push((i + 1) + '. ' + s); });
+    var text = lines.join('\n');
+    function done(ok) {
+      if (ok) {
+        note.textContent = 'Copied';
+        button.textContent = 'Copied';
+        setTimeout(function () { note.textContent = ''; button.textContent = 'Copy farm plan'; }, 2000);
+      } else {
+        note.textContent = 'Copy did not work — select the plan below and copy it by hand.';
+      }
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, function () { fallbackCopy(text, done); });
+    } else {
+      fallbackCopy(text, done);
+    }
+  }
+  function fallbackCopy(text, done) {
+    var box = document.createElement('textarea');
+    box.value = text;
+    box.setAttribute('readonly', '');
+    box.style.position = 'fixed';
+    box.style.opacity = '0';
+    document.body.appendChild(box);
+    box.select();
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(box);
+    done(ok);
+  }
   // The model in one function: the page recomputes a row from the snapshot figures and checks
   // the number board.json carries, so the page's code and the board's data are visibly the same.
   function impliedOf(row, model) {
@@ -367,7 +410,7 @@
       el('div', { class: 'equation' },
         el('div', null, el('span', { text: 'TVL' }), el('b', { class: 'num', text: fmtUsd(row.tvl_usd) })),
         el('div', null, el('span', { text: 'Seven-day growth' }), el('b', { class: 'num', text: fmtPct(row.change_7d) })),
-        el('div', null, el('span', { text: 'Age with no token' }), el('b', { class: 'num', text: fmtAge(row.age_days) })),
+        el('div', null, el('span', { text: 'Age with no token' }), el('b', { class: 'num', text: fmtAge(row.age_days) + ' (' + fmtBucket(row.age_bucket) + ')' })),
         el('div', null, el('span', { text: 'Chains' }), el('b', { class: 'num', text: String((row.chains || []).length) })),
         el('div', null, el('span', { text: 'Growth multiplier' }), el('b', { class: 'num', text: String(row.growth_multiplier) })),
         el('div', null, el('span', { text: 'Maturity multiplier' }), el('b', { class: 'num', text: String(row.maturity_multiplier) })),
@@ -376,8 +419,14 @@
       ),
       el('p', { class: 'sub', text: 'Model ' + DATA.model_version + ': the same function scores every protocol. The page recomputes this row as ' + fmtUsd(impliedOf(row, DATA.model)) + (impliedOf(row, DATA.model) === row.implied_value_usd ? ', the same number board.json carries.' : ', which differs from the board: the data would be stale.') + ' This is an estimate, not a price.' })
     ));
+    var copyNote = el('span', { class: 'copy-note', 'aria-live': 'polite' });
+    var copyButton = el('button', {
+      class: 'button copy-plan', type: 'button', text: 'Copy farm plan',
+      onclick: function () { copyFarmPlan(row, steps, copyButton, copyNote); }
+    });
     dialog.appendChild(el('section', { class: 'detail-section' },
       el('h3', { text: 'Farm plan' }),
+      el('div', { class: 'copy-row' }, copyButton, copyNote),
       el('ol', { class: 'steps' }, steps.map(function (s) {
         var at = s.indexOf(' Cost: ');
         var action = at >= 0 ? s.slice(0, at) : s;

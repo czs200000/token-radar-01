@@ -104,6 +104,9 @@ tbody tr[data-selected="true"] { background: var(--accent-soft); }
 .steps li { padding-left: var(--s1); }
 .steps b { display: block; font-weight: 500; }
 .cost { color: var(--muted); font-size: 12px; font-family: var(--font-num); }
+.copy-row { display: flex; align-items: center; gap: var(--s3); margin-bottom: var(--s3); }
+.copy-plan { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+.copy-note { color: var(--accent); font-size: 13px; min-height: 1.2em; }
 @media (max-width: 1000px) {
   .spot { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .lede { grid-template-columns: 1fr; gap: var(--s4); }
