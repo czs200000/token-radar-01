@@ -53,6 +53,17 @@ button { cursor: pointer; }
 .field { display: grid; gap: var(--s1); }
 .field label { color: var(--muted); font-size: 12px; }
 .field input, .field select { min-height: 36px; padding: 0 var(--s3); border: 1px solid var(--border); border-radius: var(--radius-control); background: var(--surface); min-width: 150px; }
+
+.button.csv {
+  margin-left: auto;
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.button.csv:hover {
+  background: var(--accent);
+  color: var(--surface);
+}
 .field input { min-width: 240px; }
 .check { display: flex; align-items: center; gap: var(--s2); min-height: 36px; color: var(--muted); font-size: 13px; }
 .tabs { display: flex; gap: var(--s1); padding: 3px; border: 1px solid var(--border); border-radius: var(--radius-control); background: var(--surface); }

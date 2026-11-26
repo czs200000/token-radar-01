@@ -193,7 +193,41 @@
     else window.history.replaceState(null, '', window.location.pathname + window.location.search);
   }
 
-  function rows() {
+  function csvCell(value) {
+    var text = value === null || value === undefined ? '' : String(value);
+    return /[",\n]/.test(text) ? '"' + text.replace(/"/g, '""') + '"' : text;
+  }
+
+  function boardCsv() {
+    var header = ['rank', 'name', 'category', 'chains', 'implied_value_usd', 'age_bucket', 'farm_steps'];
+    var lines = [header.join(',')];
+    sortedRows(rows()).forEach(function (r) {
+      lines.push([
+        csvCell(r.rank),
+        csvCell(r.name),
+        csvCell(r.category || 'Other'),
+        csvCell((r.chains || []).join('; ')),
+        csvCell(r.implied_value_usd),
+        csvCell(fmtBucket(r.age_bucket)),
+        csvCell(farmSteps(r).join(' | '))
+      ].join(','));
+    });
+    return lines.join('\n');
+  }
+
+  function downloadBoardCsv() {
+    var blob = new Blob([boardCsv()], { type: 'text/csv;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var link = document.createElement('a');
+    link.href = url;
+    link.download = 'token-radar-board.csv';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  }
+
+  function rows() { // filtered pre-token rows, before sorting
     var q = state.q.trim().toLowerCase();
     return DATA.rows.filter(function (r) {
       if (state.category !== 'all' && r.category !== state.category) return false;
@@ -284,7 +318,8 @@
       el('div', { class: 'field' }, el('label', { for: 'chain', text: 'Chain' }), ch),
       watch, early,
       el('div', { class: 'field' }, el('span', { class: 'sub', text: 'Token status' }), el('div', { class: 'tabs' }, pre, live)),
-      el('span', { class: 'count', text: state.tab === 'pre-token' ? rows().length + ' rows shown' : DATA.live.length + ' live-token protocols' })
+      el('span', { class: 'count', text: state.tab === 'pre-token' ? rows().length + ' rows shown' : DATA.live.length + ' live-token protocols' }),
+      el('button', { class: 'button csv', type: 'button', text: 'Download board CSV', onclick: downloadBoardCsv })
     );
   }
 
